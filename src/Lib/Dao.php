@@ -8,39 +8,44 @@ class Dao
     const VERSION = '1.0.0';
     /**
      * 1.0.0 - 2020-10-01
-     * initial release
+     * Initial release
      */
 
-    public function create(array $table, \stdClass $options)
+    public function create(\MonitoLib\Database\Model\Table $table, ?\MonitoMkr\Type\Options $options)
     {
-        $dbms           = $options->dbms;
-        $connectionName = $options->connectionName;
-        $namespace      = $options->namespace;
+        $dbms       = $options->getDbms();
+        $connection = $options->getConnection();
+        $namespace  = $options->getNamespace();
+        $classname  = $table->getClass();
 
-        $f = "<?php\n"
-            . "namespace $namespace\\Dao;\n"
-            . "\n"
-            . "class {$table['class']} extends \\MonitoLib\\Database\\Dao\\$dbms\n"
-            . "{\n"
-            . "    const VERSION = '1.0.0';\n"
-            . "    /**\n"
-            . "     * 1.0.0 - " . date('Y-m-d') . "\n"
-            . "     * initial release\n"
-            . "     *\n"
-            . '     * ' . __CLASS__ . ' v' . self::VERSION . ' ' . App::now() . "\n"
-            . "     */\n";
+        $cs = '';
 
-        if (!is_null($connectionName)) {
-            $f .= "\n"
-                . "    public function __construct()\n"
-                . "    {\n"
-                . "        \\MonitoLib\Database\Connector::setConnectionName('$connectionName');\n"
-                . "        parent::__construct();\n"
-                . "    }\n";
+        if (!is_null($connection)) {
+            $cs = "\n"
+                . "    protected \$connectionName = '{$connection}';";
         }
 
-        $f .= '}';
+        $today   = App::today();
+        $class   = __CLASS__;
+        $version = self::VERSION;
+        $now     = App::now();
 
-        return $f;
+        $fs = <<<PHP
+<?php
+namespace $namespace\\Dao;
+
+class {$classname} extends \\MonitoLib\\Database\\$dbms\\Dao
+{
+    const VERSION = '1.0.0';
+    /**
+     * 1.0.0 - $today
+     * Initial release
+     *
+     * $class v{$version} $now
+     */
+$cs
+}
+PHP;
+        return $fs;
     }
 }

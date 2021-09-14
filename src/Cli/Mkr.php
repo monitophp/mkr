@@ -5,6 +5,7 @@ use \MonitoLib\App;
 use \MonitoLib\Database\Connector;
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Functions;
+use \MonitoLib\Mcl\Request;
 
 class Mkr extends \MonitoLib\Mcl\Controller
 {
@@ -29,19 +30,28 @@ class Mkr extends \MonitoLib\Mcl\Controller
     private $namespace;
     private $onlyRequired = false;
     private $tables = [];
+    private $prefix;
 
     public function create()
     {
-        $objects = $this->request->getParam('objects')->getValue();
-        $baseUrl = $this->request->getOption('base-url')->getValue();
-        $noRoute = $this->request->getOption('no-route')->getValue() ?? false;
-        $noTest  = $this->request->getOption('no-test')->getValue() ?? false;
+        $objects = Request::getParam('objects')->getValue();
+        $baseUrl = Request::getOption('base-url')->getValue();
+        $noRoute = Request::getOption('no-route')->getValue() ?? false;
+        $noTest  = Request::getOption('no-test')->getValue() ?? false;
 
-        $this->connectionName    = $this->request->getOption('connection-name')->getValue();
-        $this->namespace         = $this->request->getOption('namespace')->getValue() ?? 'App';
-        $this->controllerMethods = $this->request->getOption('controller-methods')->getValue() ?? false;
-        $this->onlyRequired      = $this->request->getOption('only-required')->getValue() ?? false;
-        $this->force             = $this->request->getOption('force')->getValue() ?? false;
+        $this->connectionName    = Request::getOption('connection-name')->getValue();
+        $this->namespace         = Request::getOption('namespace')->getValue() ?? 'App';
+        $this->controllerMethods = Request::getOption('controller-methods')->getValue() ?? false;
+        $this->onlyRequired      = Request::getOption('only-required')->getValue() ?? false;
+        $this->force             = Request::getOption('force')->getValue() ?? false;
+        $this->prefix            = Request::getOption('prefix')->getValue() ?? '';
+
+        // \MonitoLib\Dev::vde(Request::getOptions());
+
+
+
+
+
 
         if (!is_null($objects)) {
             $objects = explode(',', $objects);
@@ -69,8 +79,8 @@ class Mkr extends \MonitoLib\Mcl\Controller
             $this->createTest = false;
         }
 
-        $tables  = $this->request->getOption('tables')->getValue();
-        $columns = $this->request->getOption('columns')->getValue();
+        $tables  = Request::getOption('tables')->getValue();
+        $columns = Request::getOption('columns')->getValue();
 
         if (!is_null($tables)) {
             $this->tables = explode(',', $tables);
@@ -87,13 +97,13 @@ class Mkr extends \MonitoLib\Mcl\Controller
         }
 
         // Importa as tabelas do banco
-        $this->importTables();
+        $tables = $this->importTables();
 
         // Gera os arquivos
-        $this->generate();
+        $this->generate($tables);
     }
 
-    public function importTables()
+    public function importTables() : array
     {
         // Define a conexão que será usada
         if (!is_null($this->connectionName)) {
@@ -106,7 +116,7 @@ class Mkr extends \MonitoLib\Mcl\Controller
         $class        = '\MonitoMkr\Dao\\' . $this->dbms;
         $database     = new $class($connection);
 
-        $tableList = $database->listTables($databaseName, $this->tables);
+        $tableList = $database->listTables($databaseName, $this->tables, $this->prefix);
 
         if (empty($tableList)) {
             throw new BadRequest('Nenhuma tabela encontrada!');
@@ -125,14 +135,22 @@ class Mkr extends \MonitoLib\Mcl\Controller
 
         // Lista as tabelas
         foreach ($tableList as $table) {
-            $columnList = $database->listColumns($databaseName, $table['name'], $this->columns, $this->onlyRequired);
-            $table['columns'] = $columnList;
+            $columnList = $database->listColumns($databaseName, $table->getName(), $this->columns, $this->onlyRequired);
+            $table->setColumns($columnList);
+
+            $constraintList = $database->listConstraints($databaseName, $table->getName());
+            $table->setConstraints($constraintList);
+
             $tables[] = $table;
         }
 
-        $this->tableList = $tables;
+        // \MonitoLib\Dev::ee('casa');
+
+        // \MonitoLib\Dev::pre($tables);
+
+        return $tables;
     }
-    public function generate()
+    public function generate(array $tables)
     {
         // $path = App::getStoragePath('MonitoMkr/' . $options->namespace);
         $database   = new \MonitoMkr\Lib\Database();
@@ -153,12 +171,21 @@ class Mkr extends \MonitoLib\Mcl\Controller
         $options->namespace         = $this->namespace;
         $options->baseUrl           = $this->baseUrl;
 
-        foreach ($this->tableList as $table) {
-            $objectName = $table['object'];
-            $className  = $table['class'];
-            $tableName  = $table['name'];
+        // Create options
+        $options = new \MonitoMkr\Type\Options();
+        $options
+            // ->setForce($force)
+            // ->setClassname($classname)
+            ->setConnection($this->connectionName)
+            ->setDbms($this->dbms)
+            ->setNamespace($namespace);
 
-            $table['url'] = $this->baseUrl . str_replace('_', '-', $tableName);
+        foreach ($tables as $table) {
+            $objectName = $table->getObject();
+            $className  = $table->getClass();
+            $tableName  = $table->getName();
+
+            // $table['url'] = $this->baseUrl . str_replace('_', '-', $tableName);
 
             echo "gerando tabela $namespace\\$tableName\n";
 
@@ -172,7 +199,7 @@ class Mkr extends \MonitoLib\Mcl\Controller
                 if (file_exists($file) && !$this->force) {
                     echo "Controller já existe\n";
                 } else {
-                    $f = $controller->create($table, $options);
+                    $f = $controller->render($table, $options);
                     file_put_contents($file, $f);
                     echo "Controller gerado\n";
                 }
@@ -201,23 +228,24 @@ class Mkr extends \MonitoLib\Mcl\Controller
             if ($this->createDto || $this->createModel) {
                 $file   = App::createPath($outpath . 'Model/') . $className . '.php';
                 $string = $model->create($table, $options);
+                // \MonitoLib\Dev::ee($string);
                 file_put_contents($file, $string);
                 echo "Model gerado\n";
             }
 
-            if ($this->createRoute) {
-                $file   = App::getRoutesPath() . substr(str_replace('/', '.', str_replace('//', '/', $table['url'])), 1) . '.php';
-                $string = $route->create($table, $options);
-                file_put_contents($file, $string);
-                echo "Rotas geradas\n";
-            }
+            // if ($this->createRoute) {
+            //     $file   = App::getRoutesPath() . substr(str_replace('/', '.', str_replace('//', '/', $table['url'])), 1) . '.php';
+            //     $string = $route->create($table, $options);
+            //     file_put_contents($file, $string);
+            //     echo "Rotas geradas\n";
+            // }
 
-            if ($this->createTest) {
-                $file   = App::createPath(App::getDocumentRoot() . 'test/Postman') . '/' . str_replace('\\', '_', $namespace) . '_' . $className . '.json';
-                $string = $postman->create($table, $options);
-                file_put_contents($file, $string);
-                echo "Testes gerados\n";
-            }
+            // if ($this->createTest) {
+            //     $file   = App::createPath(App::getDocumentRoot() . 'test/Postman') . '/' . str_replace('\\', '_', $namespace) . '_' . $className . '.json';
+            //     $string = $postman->create($table, $options);
+            //     file_put_contents($file, $string);
+            //     echo "Testes gerados\n";
+            // }
         }
 
         echo "processo concluido\n";

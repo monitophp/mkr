@@ -3,7 +3,7 @@ namespace MonitoMkr\Dao;
 
 use \MonitoLib\Functions;
 
-class MySQL extends \MonitoLib\Database\Dao\MySQL
+class MySQL extends \MonitoLib\Database\MySQL\Dao
 {
     const VERSION = '1.0.0';
     /**
@@ -85,6 +85,10 @@ class MySQL extends \MonitoLib\Database\Dao\MySQL
             }
         }
 
+        $sql .= ' ORDER BY ordinal_position';
+
+        // \MonitoLib\Dev::ee($sql);
+
         $sth = $this->parse($sql);
         $sth->execute();
 
@@ -94,14 +98,16 @@ class MySQL extends \MonitoLib\Database\Dao\MySQL
 
         $database = new \MonitoMkr\Lib\Database();
 
+        // \MonitoLib\Dev::pre($columns);
+
         foreach ($columns as $c) {
             // \MonitoLib\Dev::pre($c);
 
             $dataType = $c['DATA_TYPE'];
             switch ($dataType) {
-                case 'char':
-                    $type = 'char';
-                    break;
+                // case 'char':
+                //     $type = 'char';
+                //     break;
                 case 'int':
                 case 'bigint':
                 case 'smallint':
@@ -111,38 +117,42 @@ class MySQL extends \MonitoLib\Database\Dao\MySQL
                 case 'decimal';
                 case 'double';
                 case 'float';
-                    $type = 'double';
+                    $type = 'float';
                     break;
+                case 'datetime';
                 case 'timestamp';
-                    $type = 'datetime';
+                    $type = '\MonitoLib\Type\DateTime::class';
                     break;
                 default:
                     $type = 'string';
             }
 
-            $column['name']       = $c['COLUMN_NAME'];
-            $column['object']     = Functions::toLowerCamelCase($column['name']);
-            $column['type']       = $type;
-            $column['format']     = null;
-            $column['label']      = $database->labelIt($c['COLUMN_NAME']);
-            $column['dataType']   = $c['DATA_TYPE'];
-            $column['default']    = $c['COLUMN_DEFAULT'] === '' ? null : $c['COLUMN_DEFAULT'];
-            $column['maxLength']  = is_null($c['CHARACTER_MAXIMUM_LENGTH']) ? $c['NUMERIC_PRECISION'] : $c['CHARACTER_MAXIMUM_LENGTH'];
-            $column['precision']  = $c['NUMERIC_PRECISION'];
-            $column['scale']      = $c['NUMERIC_SCALE'];
-            $column['collation']  = $c['COLLATION_NAME'];
-            $column['charset']    = $c['CHARACTER_SET_NAME'];
-            $column['primary']    = $c['COLUMN_KEY'] === 'PRI' ? 1 : 0;
-            $column['required']   = $c['IS_NULLABLE'] === 'YES' ? 0 : 1;
-            $column['binary']     = strpos($c['COLLATION_NAME'], '_bin') === false ? 0 : 1;
-            $column['unsigned']   = strpos($c['COLUMN_TYPE'], 'unsigned') === false ? 0 : 1;
-            $column['unique']     = $c['COLUMN_KEY'] === 'UNI' ? 1 : 0;
-            $column['zerofilled'] = strpos($c['COLUMN_TYPE'], 'zerofill') === false ? 0 : 1;
-            $column['auto']       = $c['EXTRA'] === 'auto_increment' ? 1 : 0;
-            $column['source']     = 'auto';
-            $column['foreign']    = $c['COLUMN_KEY'] === 'MUL' ? 1 : 0;
-            $column['active']     = 1;
-            $tableName        = $c['TABLE_NAME'];
+            // \MonitoLib\Dev::vde($c['COLUMN_DEFAULT']);
+
+            $name       = $c['COLUMN_NAME'];
+            $id         = Functions::toLowerCamelCase($name);
+            // $object     = Functions::toLowerCamelCase($column['name']);
+            $type       = $type;
+            $format     = null;
+            $label      = $database->labelIt($c['COLUMN_NAME']);
+            $dataType   = $c['DATA_TYPE'];
+            $default    = $c['COLUMN_DEFAULT'] ?? $c['COLUMN_DEFAULT'];
+            $maxLength  = is_null($c['CHARACTER_MAXIMUM_LENGTH']) ? $c['NUMERIC_PRECISION'] : $c['CHARACTER_MAXIMUM_LENGTH'];
+            $precision  = $c['NUMERIC_PRECISION'];
+            $scale      = $c['NUMERIC_SCALE'];
+            $collation  = $c['COLLATION_NAME'];
+            $charset    = $c['CHARACTER_SET_NAME'];
+            $primary    = $c['COLUMN_KEY'] === 'PRI' ? 1 : 0;
+            $required   = $c['IS_NULLABLE'] === 'YES' ? 0 : 1;
+            $binary     = strpos($c['COLLATION_NAME'], '_bin') === false ? 0 : 1;
+            $unsigned   = strpos($c['COLUMN_TYPE'], 'unsigned') === false ? 0 : 1;
+            $unique     = $c['COLUMN_KEY'] === 'UNI' ? 1 : 0;
+            $zerofilled = strpos($c['COLUMN_TYPE'], 'zerofill') === false ? 0 : 1;
+            $auto       = $c['EXTRA'] === 'auto_increment' ? 1 : 0;
+            $source     = 'auto';
+            $foreign    = $c['COLUMN_KEY'] === 'MUL' ? 1 : 0;
+            $active     = 1;
+            // $tableName        = $c['TABLE_NAME'];
 
             if ($type === 'datetime') {
                 $columnFormat = 'Y-m-d H:i:s';
@@ -152,6 +162,31 @@ class MySQL extends \MonitoLib\Database\Dao\MySQL
                 $columnFormat = 'H:i:s';
             }
 
+
+            $column = new \MonitoLib\Database\Model\Column();
+            $column
+                ->setId($id)
+                ->setName($name)
+                ->setAuto($auto)
+                ->setSource($source)
+                ->setType($type)
+                ->setFormat($format)
+                ->setCharset($charset)
+                ->setCollation($collation)
+                ->setDefault($default)
+                ->setLabel($label)
+                ->setMaxLength($maxLength)
+                // ->setMinLength($minLength)
+                // ->setMaxValue($maxValue)
+                // ->setMinValue($minValue)
+                ->setPrecision($precision)
+                // ->setRestrict($restrict)
+                ->setScale($scale)
+                ->setPrimary($primary)
+                ->setRequired($required)
+                // ->setTransform($transform)
+                ->setUnique($unique)
+                ->setUnsigned($unsigned);
             $data[] = $column;
         }
 
@@ -159,50 +194,61 @@ class MySQL extends \MonitoLib\Database\Dao\MySQL
 
         return $data;
     }
-    public function listRelations($database, $tableName = NULL)
+    public function listConstraints($database, $tableName, $columName = null)
     {
-        $sql = 'SELECT * FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ?';
-
-        if (!is_null($tableName)) {
-            $sql .= ' AND TABLE_NAME ';
-
-            if (is_array($tableName)) {
-                $tableName  = "'" . implode("','", $tableName) . "'";
-                $sql       .= "IN ($tableName)";
-                $tableName  = NULL;
-            } else {
-                $sql .= '= ?';
-            }
-        }
-
-        $sth = $this->conn->prepare($sql);
-        $sth->bindParam(1, $this->dbName);
-
-        if (!is_null($tableName)) {
-            $sth->bindParam(2, $tableName);
-        }
-
-        $sth->execute();
-
-        $relations = $sth->fetchAll(\PDO::FETCH_ASSOC);
+//  " . (is_null($columName) ? '' : "AND c.column_name = '{$columName}' "
+        $sql = <<<SQL
+SELECT
+    t.table_schema,
+    t.table_name,
+    t.constraint_name,
+    SUBSTR(t.constraint_type, 1, 1) AS constraint_type,
+    c.column_name,
+    c.ordinal_position,
+    c.referenced_table_schema,
+    c.referenced_table_name,
+    c.referenced_column_name
+FROM information_schema.table_constraints t
+INNER JOIN information_schema.key_column_usage c ON t.table_schema = c.table_schema AND t.table_name = c.table_name AND t.constraint_name = c.constraint_name
+WHERE SUBSTR(t.constraint_type, 1, 1) IN ('F', 'U') AND t.table_schema = '$database' AND t.table_name = '$tableName'
+ORDER BY t.constraint_type, c.ordinal_position
+SQL;
+        // \MonitoLib\Dev::ee($sql);
+        $stt = $this->parse($sql);
+        $stt->execute();
 
         $data = [];
 
-        foreach ($relations as $r) {
-            if (!is_null($r['REFERENCED_TABLE_NAME'])) {
-                $data[] = [
-                    'tableNameSource'       => $r['TABLE_NAME'],
-                    'columnNameSource'      => $r['COLUMN_NAME'],
-                    'tableNameDestination'  => $r['REFERENCED_TABLE_NAME'],
-                    'columnNameDestination' => $r['REFERENCED_COLUMN_NAME'],
-                    'sequence'              => $r['ORDINAL_POSITION'],
-                ];
-            }
+        while ($r = $stt->fetch(\PDO::FETCH_ASSOC)) {
+            $database           = $r['table_schema'];
+            $table              = $r['table_name'];
+            $name               = $r['constraint_name'];
+            $type               = $r['constraint_type'];
+            $column             = $r['column_name'];
+            $position           = $r['ordinal_position'];
+            $referencedDatabase = $r['referenced_table_schema'];
+            $referencedTable    = $r['referenced_table_name'];
+            $referencedColumn   = $r['referenced_column_name'];
+            $referencedObject   = Functions::toLowerCamelCase($referencedColumn);
+
+            $constraint = new \MonitoLib\Database\Model\Constraint();
+            $constraint
+                ->setName($name)
+                ->setType($type)
+                ->setDatabase($database)
+                ->setTable($table)
+                ->setColumn($column)
+                ->setPosition($position)
+                ->setReferencedDatabase($referencedDatabase)
+                ->setReferencedTable($referencedTable)
+                ->setReferencedColumn($referencedColumn)
+                ->setReferencedObject($referencedObject);
+            $data[] = $constraint;
         }
 
         return $data;
     }
-    public function listTables(string $databaseName, array $tableName = [])
+    public function listTables(string $databaseName, array $tableName = [], ?string $prefix)
     {
         $sql = "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA <> 'information_schema' AND "
             . "TABLE_SCHEMA = '$databaseName'";
@@ -241,195 +287,46 @@ class MySQL extends \MonitoLib\Database\Dao\MySQL
 
         $data = [];
 
-        $database = new \MonitoMkr\Lib\Database;
+        $database = new \MonitoMkr\Lib\Database();
 
         while ($r = $stt->fetch(\PDO::FETCH_ASSOC)) {
-            $data[] = $database->table($r);
+            $prefix   ??= '';
+
+            $name     = $r['TABLE_NAME'];
+            $type     = $r['TABLE_TYPE'] === 'table' ? 'table' : 'view';
+            $alias    = $tableName;
+            $nopname  = preg_replace('/^' . $prefix . '/', '', $name);
+
+
+            $parts = explode('_', $nopname);
+
+            $object = '';
+
+            foreach ($parts as $p) {
+                $object .= ucfirst(Functions::toSingular($p));
+            }
+
+            // $object   = Functions::toLowerCamelCase($nopname);
+
+            $class    = ucfirst($object);
+            $singular = '';
+            $plural   = '';
+
+            $table = new \MonitoLib\Database\Model\Table();
+            $table
+                ->setDatabase($database)
+                ->setName($name)
+                ->setType($type)
+                ->setAlias($alias)
+                ->setPrefix($prefix)
+                ->setClass($class)
+                ->setObject($object)
+                ->setSingular($singular)
+                ->setPlural($plural);
+            $data[] = $table;
         }
 
         // \MonitoLib\Dev::pre($data);
-
-        return $data;
-    }
-    public function listTablesAndColumns($tableName = null, $columns = null)
-    {
-        $sql = 'SELECT * FROM information_schema.TABLES t '
-            . 'INNER JOIN information_schema.COLUMNS c ON t.table_schema = c.table_schema AND t.table_name = c.table_name '
-            . 'WHERE t.TABLE_SCHEMA = ? ';
-        if (!is_null($tableName)) {
-            $sql .= 'AND t.TABLE_NAME IN (' . \MonitoCli\Database\Helper::serialize($tableName) . ') ';
-        }
-        $sql .= 'ORDER BY t.TABLE_NAME, c.ORDINAL_POSITION';
-        $sth = $this->connection->prepare($sql);
-
-        // \MonitoLib\Dev::ee($sql);
-
-        $sth->bindParam(1, $this->config->database);
-        $sth->execute();
-
-        $res = $sth->fetchAll(\PDO::FETCH_ASSOC);
-
-        // \MonitoLib\Dev::pre($res);
-
-        $data = [];
-        $currentTable = null;
-
-        foreach ($res as $r) {
-            if ($currentTable !== $r['TABLE_NAME']) {
-                $tableDto = new \MonitoCli\Database\Dto\Table;
-                $tableDto->setTableName($tableName);
-
-                if ($r['TABLE_TYPE'] === 'VIEW') {
-                    $tableDto->setTableType('view');
-                } else {
-                    $tableDto->setTableType('table');
-                }
-
-                $data[] = \MonitoCli\Database\Helper::table($tableDto);
-            }
-
-            $columnDto = new \MonitoCli\Database\Dto\Column;
-            $columnDto->setTable($r['TABLE_NAME']);
-            $columnDto->setName($r['COLUMN_NAME']);
-            // $columnDto->setType($column['type']);
-            // $columnDto->setLabel($column['label']);
-            $columnDto->setDatatype($r['DATA_TYPE']);
-            $columnDto->setDefaultvalue($r['COLUMN_DEFAULT']);
-            // $columnDto->setMaxlength($column['maxLength']);
-            // $columnDto->setNumericprecision($column['numericPrecision']);
-            // $columnDto->setNumericscale($column['numericScale']);
-            // $columnDto->setCollation($column['collation']);
-            // $columnDto->setCharset($column['charset']);
-            $columnDto->setIsprimary($r['COLUMN_KEY'] == 'PRI' ? 1 : 0);
-            $columnDto->setIsrequired($r['IS_NULLABLE'] === 'YES' ? 0 : 1);
-            // $columnDto->setIsbinary($column['isBinary']);
-            // $columnDto->setIsunsigned($column['isUnsigned']);
-            // $columnDto->setIsunique($column['isUnique']);
-            // $columnDto->setIszerofilled($column['isZerofilled']);
-            $columnDto->setIsauto($r['EXTRA'] == 'auto_increment' ? 1 : 0);
-            // $columnDto->setIsforeign($column['isForeign']);
-            $tableDto->addColumn($columnDto);
-
-            $currentTable = $r['TABLE_NAME'];
-        }
-
-        return $data;
-    }
-    public function load()
-    {
-        // Loads tables
-        $this->loadTables();
-
-        // Loads columns
-        $this->loadColumns();
-
-        // Loads relations
-        $this->loadRelations();
-    }
-    private function loadColumns()
-    {
-        $columns = $this->listColumns($this->connection->getDbName(), $this->tables);
-
-        $data = [];
-
-        foreach ($columns as $c)
-        {
-            $columnName          = $c['COLUMN_NAME'];
-            $columnType          = NULL;
-            $columnLabel         = $this->labelIt($c['COLUMN_NAME']);
-            $columnDataType      = $c['DATA_TYPE'];
-            $columnDefault       = $c['COLUMN_DEFAULT'] == '' ? NULL : $c['COLUMN_DEFAULT'];
-            $columnMaxLength     = is_null($c['CHARACTER_MAXIMUM_LENGTH']) ? $c['NUMERIC_PRECISION'] : $c['CHARACTER_MAXIMUM_LENGTH'];
-            $columnPrecisionSize = $c['NUMERIC_PRECISION'];
-            $columnScale         = $c['NUMERIC_SCALE'];
-            $columnCollation     = $c['COLLATION_NAME'];
-            $columnCharset       = $c['CHARACTER_SET_NAME'];
-            $columnIsPrimary     = $c['COLUMN_KEY'] == 'PRI' ? 1 : 0;
-            $columnIsRequired    = $c['IS_NULLABLE'] == 'YES' ? 0 : 1;
-            $columnIsBinary      = strpos($c['COLLATION_NAME'], '_bin') !== FALSE ? 0 : 1;
-            $columnIsUnsigned    = strpos($c['COLUMN_TYPE'], 'unsigned') !== FALSE ? 0 : 1;
-            $columnIsUnique      = $c['COLUMN_KEY'] == 'UNI' ? 1 : 0;
-            $columnIsZerofilled  = strpos($c['COLUMN_TYPE'], 'zerofill') !== FALSE ? 0 : 1;
-            $columnIsAuto        = $c['EXTRA'] == 'auto_increment' ? 1 : 0;
-            $columnIsForeign     = $c['COLUMN_KEY'] == 'MUL' ? 1 : 0;
-            $columnActive        = 1;
-            $tableName           = $c['TABLE_NAME'];
-
-            //$tableDao    = \dao\Factory::createTable();
-            //$tableObject = $tableDao->getByName($tableName);
-
-            //if (is_null($tableObject))
-            //{
-            //  throw new \Exception("Table $tableName not found!");
-            //}
-
-            $columnDao = \dao\Factory::createColumn();
-            $columnDto = new \model\Column;
-            //$columnDto->setTableId($tableObject->getId());
-            $columnDto->setName($columnName);
-            $columnDto->setType($columnType);
-            $columnDto->setLabel($columnLabel);
-            $columnDto->setDataType($columnDataType);
-            $columnDto->setDefaultValue($columnDefault);
-            $columnDto->setMaxLength($columnMaxLength);
-            $columnDto->setNumericPrecision($columnPrecisionSize);
-            $columnDto->setNumericScale($columnScale);
-            $columnDto->setCollation($columnCollation);
-            $columnDto->setCharset($columnCharset);
-            $columnDto->setIsPrimary($columnIsPrimary);
-            $columnDto->setIsRequired($columnIsRequired);
-            $columnDto->setIsBinary($columnIsBinary);
-            $columnDto->setIsUnsigned($columnIsUnsigned);
-            $columnDto->setIsUnique($columnIsUnique);
-            $columnDto->setIsZerofilled($columnIsZerofilled);
-            $columnDto->setIsAuto($columnIsAuto);
-            $columnDto->setIsForeign($columnIsForeign);
-            $columnDto->setActive($columnActive);
-
-            //$columnDao    = \dao\Factory::createColumn();
-            //$columnObject = $columnDao->getByName($tableObject->getId(), $columnName);
-            //
-            //if (is_null($columnObject))
-            //{
-            //  $columnDao->insert($columnModel);
-            //}
-            //else
-            //{
-            //  $columnModel->setId($columnObject->getId());
-            //  $columnDao->update($columnModel);
-            //}
-            $data[] = $columnDto;
-        }
-
-        return $data;
-    }
-    public function listConstraints($database, $tableName, $columName = null)
-    {
-        $sql = 'SELECT t.table_schema, t.table_name, t.constraint_name, SUBSTR(t.constraint_type, 1, 1) AS constraint_type, c.column_name, c.ordinal_position, c.referenced_table_schema, '
-            . 'c.referenced_table_name, c.referenced_column_name FROM information_schema.table_constraints t '
-            . 'INNER JOIN information_schema.key_column_usage c ON t.table_schema = c.table_schema AND t.table_name = c.table_name '
-            . "AND t.constraint_name = c.constraint_name WHERE t.table_schema = '{$database}' AND t.table_name = '{$tableName}' " . (is_null($columName) ? '' : "AND c.column_name = '{$columName}' ")
-            . 'ORDER BY t.constraint_type, c.ordinal_position';
-        // \MonitoLib\Dev::e("$sql\n\n");
-        $stt = $this->connection->parse($sql);
-        $stt->execute();
-
-        $data = [];
-
-        while ($r = $stt->fetch(\PDO::FETCH_ASSOC)) {
-            $constraint = new \stdClass;
-            $constraint->tableSchema            = $r['table_schema'];
-            $constraint->tableName              = $r['table_name'];
-            $constraint->constraintName         = $r['constraint_name'];
-            $constraint->constraintType         = $r['constraint_type'];
-            $constraint->columnName             = $r['column_name'];
-            $constraint->ordinalPosition        = $r['ordinal_position'];
-            $constraint->referencedTableSchema  = $r['referenced_table_schema'];
-            $constraint->referencedTableName    = $r['referenced_table_name'];
-            $constraint->referencedColumnName   = $r['referenced_column_name'];
-            $constraint->referencedColumnObject = Functions::toLowerCamelCase($r['referenced_column_name']);
-            $data[] = $constraint;
-        }
 
         return $data;
     }

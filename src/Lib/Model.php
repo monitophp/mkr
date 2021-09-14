@@ -12,17 +12,40 @@ class Model
      * initial release
      */
 
-    public function create(array $table, \stdClass $options)
+    public function create(\MonitoLib\Database\Model\Table $table, ?\MonitoMkr\Type\Options $options)
     {
         // \MonitoLib\Dev::pre($table);
         $output = '';
-        $keys = '';
+        $keys   = '';
 
-        $dbms           = $options->dbms;
-        $namespace      = $options->namespace;
+        $tablename = $table->getName();
+        $classname = $table->getClass();
+        $columns   = $table->getColumns();
+        $namespace = $options->getNamespace();
+        $dbms      = $options->getDbms();
+        // $namespace      = $options->getNamespace();
 
-        foreach ($table['columns'] as $column) {
-            $object = $column['object'];
+        $columns     = $table->getColumns();
+        $constraints = $table->getConstraints();
+
+        $tableString = "    protected \$table = [\n"
+            . "        'name' => '{$tablename}',\n"
+            . "    ];\n";
+
+        foreach ($columns as $column) {
+            $object    = $column->getId();
+            $name      = $column->getName();
+            $source    = $column->getSource();
+            $type      = $column->getType();
+            $format    = $column->getFormat();
+            $default   = $column->getDefault();
+            $label     = $column->getLabel();
+            $maxLength = $column->getMaxLength();
+            $primary   = $column->getPrimary();
+            $required  = $column->getRequired();
+            $unsigned  = $column->getUnsigned();
+            $auto      = $column->getAuto();
+
             $cl = strlen($object);
             $ci = $cl;//$bi + $cl;
             $it = floor($ci / 4);
@@ -30,13 +53,17 @@ class Model
             $li = "            ";//$util->indent($it, $is);
 
             $output .= "        '" . $object . "' => [\n";
-            $output .= "$li'name'      => '{$column['name']}',\n";
 
-            if ($column['auto']) {
+
+            if ($object !== $name) {
+                $output .= "$li'name'      => '{$name}',\n";
+            }
+
+            if ($auto) {
                 $output .= "$li'auto'      => true,\n";
 
-                if ($column['source'] !== 'auto') {
-                    $output .= "$li'source'    => '{$column['source']}',\n";
+                if ($source !== 'auto') {
+                    $output .= "$li'source'    => '{$source}',\n";
                 }
             }
 
@@ -48,26 +75,32 @@ class Model
             //         $output .= "$li'collation' => '{$column['getCollation']()}',\n";
             //     }
             // }
-            if ($column['type'] !== 'string') {
-                $output .= "$li'type'      => '{$column['type']}',\n";
+            if ($type !== 'string') {
+                // \MonitoLib\Dev::vd($type);
+
+                if (!class_exists($type)) {
+                    $type = "'{$type}'";
+                }
+
+                $output .= "$li'type'      => {$type},\n";
             }
-            if (!is_null($column['format'])) {
-                $output .= "$li'format'    => '{$column['format']}',\n";
+            if (!is_null($format)) {
+                $output .= "$li'format'    => '{$format}',\n";
             }
-            if (!is_null($column['default'])) {
-                $output .= "$li'default'   => '{$column['default']}',\n";
+            if (!is_null($default)) {
+                $output .= "$li'default'   => '{$default}',\n";
             }
-            if (!is_null($column['label']) && $column['label'] !== '') {
-                $output .= "$li'label'     => '{$column['label']}',\n";
+            if (!is_null($label) && ($label !== '' || $label !== $name)) {
+                // $output .= "$li'label'     => '{$label}',\n";
             }
-            if (!is_null($column['maxLength']) && $column['maxLength'] > 0) {
-                $output .= "$li'maxLength' => {$column['maxLength']},\n";
+            if (!is_null($maxLength) && $maxLength > 0) {
+                $output .= "$li'maxLength' => {$maxLength},\n";
             }
-            if ($column['primary']) {
-                $keys .= "'" . $column['name'] . "',";
+            if ($primary) {
+                $keys .= "'" . $name . "',";
                 $output .= "$li'primary'   => true,\n";
             }
-            if ($column['required']) {
+            if ($required) {
                 $output .= "$li'required'  => true,\n";
             }
             // if ($modelDefault->getDefaults('type')) {
@@ -77,12 +110,12 @@ class Model
             //     $output .= "$li'unique' => {$column['getIsUnique']()},\n";
             // }
 
-            if (in_array($column['type'], ['int', 'double']) && $column['unsigned']) {
+            if (in_array($type, ['int', 'double']) && $unsigned) {
                 $output .= "$li'unsigned'  => true,\n";
             }
 
             if ($dbms === 'Oracle') {
-                if (in_array($column['name'], [
+                if (in_array($name, [
                     'dtalt',
                     'dtinc',
                     'usralt',
@@ -90,7 +123,7 @@ class Model
                 ])) {
                     $output .= "$li'auto'      => true,\n";
 
-                    switch ($column['name']) {
+                    switch ($name) {
                         case 'dtalt':
                             $source = 'UPDATE.now';
                             break;
@@ -122,47 +155,19 @@ class Model
 
         $keys = substr($keys, 0, -1);
 
-        $constraints = '';
 
-        // Constraints
-        if (isset($table['constraints']) && !empty($table['constraints'])) {
-            // \MonitoLib\Dev::pre($table['constraints']);
-            // foreach ($table['constraints'] as $constraint) {
 
-            // }
-            $constraints =  "\n    protected \$constraints = [\n";
+        $keysString = '';
 
-            $gambiarraTemporaria = 0;
-
-            foreach ($table['constraints'] as $ck => $cv) {
-                // \MonitoLib\Dev::pre($ck);
-                if ($ck === 'unique') {
-                    $key = key($cv);
-                    $constraints .= "        'unique' => [\n";
-                    $constraints .= "            '$key' => [\n";
-                    foreach ($cv->$key as $ck => $c) {
-                        // \MonitoLib\Dev::pre($c);
-                        $constraints .= "                '" . Functions::toLowerCamelCase($c) . "',\n";
-                    }
-                    $constraints .= "             ]\n";
-                    $constraints .= "         ],\n";
-
-                    $gambiarraTemporaria++;
-                }
-            }
-
-            $constraints .=  "    ];\n";
-
-            if ($gambiarraTemporaria === 0) {
-                $constraints = '';
-            }
+        if (!empty($keys)) {
+            $keysString = "    protected \$keys = [$keys];\n"
+                . "\n";
         }
 
-        $f = "<?php\n"
-            . "\n"
+        $fs = "<?php\n"
             . "namespace $namespace\\Model;\n"
             . "\n"
-            . "class {$table['class']} extends \\MonitoLib\\Database\\Model\n"
+            . "class {$classname} extends \\MonitoLib\\Database\\Model\n"
             . "{\n"
             . "    const VERSION = '1.0.0';\n"
             . "    /**\n"
@@ -172,16 +177,96 @@ class Model
             . '     * ' . __CLASS__ . ' v' . self::VERSION . ' ' . App::now() . "\n"
             . "     */\n"
             . "\n"
-            . "    protected \$tableName = '" . $table['name'] . "';\n"
+            . $tableString
             . "\n"
-            . "    protected \$fields = [\n"
+            . "    protected \$columns = [\n"
             . $output
             . "    ];\n"
             . "\n"
-            . "    protected \$keys = [$keys];\n"
-            . $constraints
+            . $keysString
+            . $this->renderConstraints($constraints)
             . "}"
             ;
-        return $f;
+        return $fs;
+    }
+    private function renderConstraints(array $constraints) : string
+    {
+        $constraintString = '';
+
+        // Constraints
+        if (!empty($constraints)) {
+            // \MonitoLib\Dev::pre($table['constraints']);
+            // foreach ($table['constraints'] as $constraint) {
+
+            // }
+            $constraintString =  "    protected \$constraints = [\n";
+
+            $gambiarraTemporaria = 0;
+
+            $currentType = '';
+            $currentName = '';
+
+            $closeType = "        ],\n";
+            $closeName = "            ],\n";
+
+            foreach ($constraints as $constraint) {
+                $name               = $constraint->getName();
+                $type               = $constraint->getType();
+                $database           = $constraint->getDatabase();
+                $table              = $constraint->getTable();
+                $column             = $constraint->getColumn();
+                $position           = $constraint->getPosition();
+                $referencedDatabase = $constraint->getReferencedDatabase();
+                $referencedTable    = $constraint->getReferencedTable();
+                $referencedColumn   = $constraint->getReferencedColumn();
+                $referencedObject   = $constraint->getReferencedObject();
+
+                if ($type !== $currentType) {
+                    if ($currentType !== '') {
+                        $constraintString .= $closeName
+                            . $closeType;
+                    }
+
+                    $constraintString .= "        '$type' => [\n";
+                    $currentType = $type;
+                    $currentName = '';
+                }
+
+                if ($name !== $currentName) {
+                    if ($currentName !== '') {
+                        $constraintString .= $closeName;
+                    }
+
+                    $constraintString .= "            '$name' => [\n";
+                    $currentName = $name;
+                }
+
+                $constraintString .= "                '" . Functions::toLowerCamelCase($column) . "',\n";
+                // }
+
+                // if ($type === 'U') {
+                //     // $key = key($cv);
+                //     // foreach ($cv->$key as $ck => $c) {
+                //         // \MonitoLib\Dev::pre($c);
+                //     // }
+
+                //     $gambiarraTemporaria++;
+                // }
+            }
+
+            // $constraintString .=  "    ];\n";
+
+            // if ($gambiarraTemporaria === 0) {
+            //     $constraintString = '';
+            // }
+        }
+
+        if ($constraintString !== '') {
+            $constraintString .= $closeName
+                . $closeType
+                . "    ];\n";
+        }
+
+        return $constraintString;
     }
 }
