@@ -42,6 +42,7 @@ class Dto
         }
 
         $fs = "<?php\n"
+            . "\n"
             . "namespace {$namespace}\\Dto;\n"
             . "\n"
             . "class {$classname}\n"
@@ -158,7 +159,7 @@ class Dto
     *
     * @return {$type} \${$prop}
     */
-    public function {$method}() : ?{$type}
+    public function {$method}(): ?{$type}
     {
         return \$this->$prop;
     }

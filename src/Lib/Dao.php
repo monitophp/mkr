@@ -32,6 +32,7 @@ class Dao
 
         $fs = <<<PHP
 <?php
+
 namespace $namespace\\Dao;
 
 class {$classname} extends \\MonitoLib\\Database\\$dbms\\Dao

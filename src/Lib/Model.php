@@ -165,6 +165,7 @@ class Model
         }
 
         $fs = "<?php\n"
+            . "\n"
             . "namespace $namespace\\Model;\n"
             . "\n"
             . "class {$classname} extends \\MonitoLib\\Database\\Model\n"

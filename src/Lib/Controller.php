@@ -67,6 +67,7 @@ class Controller
         }
 
         $fs = "<?php\n"
+            . "\n"
             . "namespace $namespace\\Controller;\n"
             . "\n"
             . $use
