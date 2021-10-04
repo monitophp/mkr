@@ -10,7 +10,7 @@
     ],
     "require": {
         "php": ">=7.4.0",
-        "monitophp/lib": "^1.0.0"
+        "monitophp/lib": "dev-feature/v2"
     },
     "autoload": {
         "psr-4": {
