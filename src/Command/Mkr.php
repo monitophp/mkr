@@ -9,8 +9,8 @@ class Mkr extends \MonitoLib\Mcl\Module
      * initial release
      */
 
-    protected $name = 'mkr';
-    protected $help = 'Cria aplicações da MonitoLib';
+    protected string $name = 'mkr';
+    protected string $help = 'Cria aplicações da MonitoLib';
 
     public function setup()
     {
@@ -18,18 +18,18 @@ class Mkr extends \MonitoLib\Mcl\Module
         $this->addCommand(new Mkr\Create());
 
         // Cria uma classe dto baseada em um model
-        $this->addCommand(new Mkr\CreateDto());
+        // $this->addCommand(new Mkr\CreateDto());
 
         // Adiciona uma coluna a um modelo
-        $this->addCommand(new Mkr\AddColumn());
+        // $this->addCommand(new Mkr\AddColumn());
 
         // Remove uma columa de um modelo
-        $this->addCommand(new Mkr\DelColumn());
+        // $this->addCommand(new Mkr\DelColumn());
 
         // Deleta um modelo e seus arquivos de uma aplicação
-        $this->addCommand(new Mkr\Delete());
+        // $this->addCommand(new Mkr\Delete());
 
         // Atualiza as colunas de um modelo
-        $this->addCommand(new Mkr\Update());
+        // $this->addCommand(new Mkr\Update());
     }
 }

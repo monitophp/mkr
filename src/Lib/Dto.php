@@ -162,7 +162,7 @@ class Dto
     public function {$method}(): ?{$type}
     {
         return \$this->$prop;
-    }
+    }\n
 PHP;
         return $ms;
     }

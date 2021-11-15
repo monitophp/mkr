@@ -12,10 +12,10 @@ class CreateDto extends \MonitoLib\Mcl\Command
      * Initial release
      */
 
-    protected $name   = 'create-dto';
-    protected $class  = \MonitoMkr\Cli\CreateDto::class;
-    protected $method = 'create';
-    protected $help   = 'Cria objeto dto baseado no model';
+    protected string $name   = 'create-dto';
+    protected string $class  = \MonitoMkr\Cli\CreateDto::class;
+    protected string $method = 'create';
+    protected string $help   = 'Cria objeto dto baseado no model';
 
     public function __construct()
     {
@@ -23,8 +23,8 @@ class CreateDto extends \MonitoLib\Mcl\Command
         $this->addParam(
             new class extends Param
             {
-                protected $name     = 'model-name';
-                protected $help     = 'Nome completo da classe model';
+                protected string $name     = 'model-name';
+                protected string $help     = 'Nome completo da classe model';
                 protected $required = true;
             }
         );
@@ -33,10 +33,10 @@ class CreateDto extends \MonitoLib\Mcl\Command
         $this->addOption(
             new class extends Option
             {
-                protected $name    = 'force';
-                protected $alias   = 'f';
-                protected $help    = 'Força a criação do objeto dto, se existir';
-                protected $type    = 'boolean';
+                protected ?string $name    = 'force';
+                protected ?string $alias   = 'f';
+                protected ?string $help    = 'Força a criação do objeto dto, se existir';
+                protected ?string $type    = 'boolean';
                 protected $default = false;
             }
         );

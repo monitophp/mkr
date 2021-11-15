@@ -12,10 +12,10 @@ class Create extends \MonitoLib\Mcl\Command
      * Initial release
      */
 
-    protected $name   = 'create';
-    protected $class  = \MonitoMkr\Cli\Mkr::class;
-    protected $method = 'create';
-    protected $help   = 'Cria objetos baseados em tabelas';
+    protected string $name   = 'create';
+    protected string $class  = \MonitoMkr\Cli\Mkr::class;
+    protected string $method = 'create';
+    protected string $help   = 'Cria objetos baseados em tabelas';
 
     public function __construct()
     {
@@ -23,8 +23,8 @@ class Create extends \MonitoLib\Mcl\Command
         $this->addParam(
             new class extends Param
             {
-                protected $name     = 'objects';
-                protected $help     = 'Lista dos tipos de objetos que serão criados';
+                protected string $name     = 'objects';
+                protected string $help     = 'Lista dos tipos de objetos que serão criados';
                 // protected $required = true;
             }
         );
@@ -32,51 +32,51 @@ class Create extends \MonitoLib\Mcl\Command
         $this->addOption(
             new class extends Option
             {
-                protected $name     = 'connection-name';
-                protected $alias    = 'c';
-                protected $help     = 'Nome da conexão com o banco de dados';
+                protected ?string $name     = 'connection-name';
+                protected ?string $alias    = 'c';
+                protected ?string $help     = 'Nome da conexão com o banco de dados';
                 // protected $required = true;
-                protected $type     = 'string';
+                protected ?string $type     = 'string';
             }
         );
         // Adiciona uma opção ao comando
         $this->addOption(
             new class extends Option
             {
-                protected $name     = 'namespace';
-                protected $alias    = 'n';
-                protected $help     = 'Namespace onde serão criados os objetos';
-                // protected $required = true;
-                protected $type     = 'string';
+                protected ?string $name     = 'namespace';
+                protected ?string $alias    = 'n';
+                protected ?string $help     = 'Namespace onde serão criados os objetos';
+                // protected string $required = true;
+                protected ?string $type     = 'string';
             }
         );
         // Adiciona uma opção ao comando
         $this->addOption(
             new class extends Option
             {
-                protected $name     = 'tables';
-                protected $alias    = 't';
-                protected $help     = 'Tabelas que serão importadas. Se não informada, todas as tabelas da conexão serão importadas.';
-                // protected $required = true;
-                protected $type     = 'string';
+                protected ?string $name     = 'tables';
+                protected ?string $alias    = 't';
+                protected ?string $help     = 'Tabelas que serão importadas. Se não informada, todas as tabelas da conexão serão importadas.';
+                // protected string $required = true;
+                protected ?string $type     = 'string';
             }
         );
         // Adiciona uma opção ao comando
         $this->addOption(
             new class extends Option
             {
-                protected $name     = 'base-url';
-                protected $help     = 'Url base das rotas. Se não informado será usado o namespace.';
-                protected $type     = 'string';
+                protected ?string $name     = 'base-url';
+                protected ?string $help     = 'Url base das rotas. Se não informado será usado o namespace.';
+                protected ?string $type     = 'string';
             }
         );
         // Adiciona uma opção ao comando
         $this->addOption(
             new class extends Option
             {
-                protected $name     = 'controller-methods';
-                protected $help     = 'Indica que o controller deve ser gerado com os métodos';
-                protected $type     = 'boolean';
+                protected ?string $name     = 'controller-methods';
+                protected ?string $help     = 'Indica que o controller deve ser gerado com os métodos';
+                protected ?string $type     = 'boolean';
                 protected $default  = false;
             }
         );
@@ -84,9 +84,9 @@ class Create extends \MonitoLib\Mcl\Command
         $this->addOption(
             new class extends Option
             {
-                protected $name     = 'no-route';
-                protected $help     = 'Indica que as rotas não devem ser geradas';
-                protected $type     = 'boolean';
+                protected ?string $name     = 'no-route';
+                protected ?string $help     = 'Indica que as rotas não devem ser geradas';
+                protected ?string $type     = 'boolean';
                 protected $default  = false;
             }
         );
@@ -94,9 +94,9 @@ class Create extends \MonitoLib\Mcl\Command
         $this->addOption(
             new class extends Option
             {
-                protected $name     = 'no-test';
-                protected $help     = 'Indica que os testes não devem ser gerados';
-                protected $type     = 'boolean';
+                protected ?string $name     = 'no-test';
+                protected ?string $help     = 'Indica que os testes não devem ser gerados';
+                protected ?string $type     = 'boolean';
                 protected $default  = false;
             }
         );
@@ -104,9 +104,9 @@ class Create extends \MonitoLib\Mcl\Command
         $this->addOption(
             new class extends Option
             {
-                protected $name     = 'only-required';
-                protected $help     = 'Indica que somente as colunas obrigatórias serão consideradas';
-                protected $type     = 'boolean';
+                protected ?string $name     = 'only-required';
+                protected ?string $help     = 'Indica que somente as colunas obrigatórias serão consideradas';
+                protected ?string $type     = 'boolean';
                 protected $default  = false;
             }
         );
@@ -114,9 +114,9 @@ class Create extends \MonitoLib\Mcl\Command
         $this->addOption(
             new class extends Option
             {
-                protected $name     = 'force';
-                protected $help     = 'Força a geração controllers e daos existentes';
-                protected $type     = 'boolean';
+                protected ?string $name     = 'force';
+                protected ?string $help     = 'Força a geração controllers e daos existentes';
+                protected ?string $type     = 'boolean';
                 protected $default  = false;
             }
         );
@@ -124,19 +124,19 @@ class Create extends \MonitoLib\Mcl\Command
         $this->addOption(
             new class extends Option
             {
-                protected $name  = 'columns';
-                // protected $alias = 'c';
-                protected $help  = 'Colunas que serão importadas';
+                protected ?string $name  = 'columns';
+                // protected ?string $alias = 'c';
+                protected ?string $help  = 'Colunas que serão importadas';
             }
         );
         // Adiciona uma opção ao comando
         $this->addOption(
             new class extends Option
             {
-                protected $name     = 'prefix';
-                protected $alias    = 'p';
-                protected $help     = 'Prefixo das tabelas a ser ignorado';
-                protected $type     = 'string';
+                protected ?string $name     = 'prefix';
+                protected ?string $alias    = 'p';
+                protected ?string $help     = 'Prefixo das tabelas a ser ignorado';
+                protected ?string $type     = 'string';
             }
         );
     }

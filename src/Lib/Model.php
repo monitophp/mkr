@@ -28,9 +28,7 @@ class Model
         $columns     = $table->getColumns();
         $constraints = $table->getConstraints();
 
-        $tableString = "    protected \$table = [\n"
-            . "        'name' => '{$tablename}',\n"
-            . "    ];\n";
+        $tableString = "    protected \$table = '{$tablename}';\n";
 
         foreach ($columns as $column) {
             $object    = $column->getId();
@@ -159,10 +157,10 @@ class Model
 
         $keysString = '';
 
-        if (!empty($keys)) {
-            $keysString = "    protected \$keys = [$keys];\n"
-                . "\n";
-        }
+        // if (!empty($keys)) {
+        //     $keysString = "    protected \$keys = [$keys];\n"
+        //         . "\n";
+        // }
 
         $fs = "<?php\n"
             . "\n"
